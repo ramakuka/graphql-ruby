@@ -184,13 +184,14 @@ describe GraphQL::Relay::Mutation do
     }
 
     let(:mutation) {
-      interfaces = [result_interface, error_interface]
+      return_interfaces = [result_interface, error_interface]
       GraphQL::Relay::Mutation.define do
         name "ReturnTypeWithInterfaceTest"
 
-        return_field :name, types.String
-
-        return_interfaces interfaces
+        return_type do
+          field :name, types.String
+          interfaces return_interfaces
+        end
 
         resolve ->(obj, input, ctx) {
           {
@@ -219,6 +220,7 @@ describe GraphQL::Relay::Mutation do
 
     it 'makes the mutation type implement the interfaces' do
       assert_equal [result_interface, error_interface], mutation.return_type.interfaces
+      assert_equal "ReturnTypeWithInterfaceTestPayload", mutation.return_type.name
     end
 
     it "returns interface values and specific ones" do
@@ -228,6 +230,18 @@ describe GraphQL::Relay::Mutation do
       assert_equal true, result["data"]["custom"]["success"]
       assert_equal "Error Interface Field", result["data"]["custom"]["error"]
       assert_equal "123", result["data"]["custom"]["clientMutationId"]
+    end
+
+    describe "custom name" do
+      it "accepts a custom name" do
+        mutation = GraphQL::Relay::Mutation.define do
+          name "CustomNameMutation"
+          return_type do
+            name "CustomNameReturn"
+          end
+        end
+        assert_equal "CustomNameReturn", mutation.return_type.name
+      end
     end
   end
 

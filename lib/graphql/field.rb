@@ -122,11 +122,11 @@ module GraphQL
   class Field
     include GraphQL::Define::InstanceDefinable
     accepts_definitions :name, :description, :deprecation_reason,
-      :resolve, :lazy_resolve,
-      :type, :arguments,
+      :resolve, :lazy_resolve, :arguments,
       :property, :hash_key, :complexity, :mutation,
       :relay_node_field,
       :relay_nodes_field,
+      type: GraphQL::Define::AssignReturnType,
       argument: GraphQL::Define::AssignArgument
 
     ensure_defined(

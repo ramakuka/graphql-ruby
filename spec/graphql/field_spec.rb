@@ -199,4 +199,42 @@ describe GraphQL::Field do
       assert_instance_of Proc, field.resolve_proc
     end
   end
+
+  describe "#type" do
+    it "generates a type" do
+      interface = GraphQL::InterfaceType.define do
+        name "TestInterface"
+        field :a, types.String
+      end
+
+      test_field = GraphQL::Field.define do
+        name "testField"
+        type do
+          interfaces [interface]
+          field :b, types.Int
+          field :c, types.Int
+        end
+      end
+
+      generated_type = test_field.type
+      assert_equal "testFieldResult", generated_type.name
+      assert_equal ["a", "b", "c"], generated_type.all_fields.map(&:name)
+      assert_equal [interface], generated_type.interfaces
+    end
+
+    it "accepts a custom name" do
+      test_field = GraphQL::Field.define do
+        name "testField"
+        type do
+          name "SomeCustomName"
+          interfaces [interface]
+          field :b, types.Int
+          field :c, types.Int
+        end
+
+        generated_type = test_field.type
+        assert_equal "SomeCustomName", generated_type.name
+      end
+    end
+  end
 end
