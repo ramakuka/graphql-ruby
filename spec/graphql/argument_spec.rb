@@ -41,4 +41,60 @@ describe GraphQL::Argument do
     assert argument.default_value.nil?
     assert !argument.default_value?
   end
+
+  describe "#type" do
+    it "generates an input object type for the argument" do
+      test_field = GraphQL::Field.define do
+        name "testField"
+        argument :something do
+          type do
+            argument :a, types.String
+            argument :b, types.Int
+          end
+        end
+      end
+
+      generated_type = test_field.arguments["something"].type
+      assert_instance_of GraphQL::InputObjectType, generated_type
+      assert_equal ["a", "b"], generated_type.arguments.keys
+      assert_equal "somethingInput", generated_type.name
+    end
+
+    it "accepts a custom name" do
+      arg = GraphQL::Argument.define do
+        name "stuff"
+        type do
+          name "SomethingType"
+          argument :x do
+            type do
+              name "SomethingElseType"
+              argument :y, types.Boolean
+            end
+          end
+        end
+      end
+
+      assert_equal "SomethingType", arg.type.name
+      assert_equal "SomethingElseType", arg.type.arguments["x"].type.name
+      assert_equal "Boolean", arg.type.arguments["x"].type.arguments["y"].type.name
+    end
+
+    it "accepts a default value" do
+      arg = GraphQL::Argument.define do
+        name "stuff"
+        default_value({ "x" => { "y" => false } })
+        type do
+          name "SomethingType"
+          argument :x do
+            type do
+              name "SomethingElseType"
+              argument :y, types.Boolean
+            end
+          end
+        end
+      end
+
+      assert_equal false, arg.default_value["x"]["y"]
+    end
+  end
 end

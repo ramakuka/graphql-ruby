@@ -17,7 +17,8 @@ module GraphQL
   #
   class Argument
     include GraphQL::Define::InstanceDefinable
-    accepts_definitions :name, :type, :description, :default_value
+    accepts_definitions :name, :description, :default_value,
+      type: GraphQL::Define::AssignInputType
     attr_accessor :type, :description, :default_value, :name
 
     ensure_defined(:name, :description, :default_value, :type=, :type)
