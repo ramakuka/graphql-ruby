@@ -111,13 +111,6 @@ describe GraphQL::Schema::Validation do
   end
 
   describe "validating ObjectTypes" do
-    let(:invalid_interfaces_object) {
-      GraphQL::ObjectType.define do
-        name "InvalidInterfaces"
-        interfaces(55)
-      end
-    }
-
     let(:invalid_interface_member_object) {
       GraphQL::ObjectType.define do
         name "InvalidInterfaceMember"
@@ -133,12 +126,64 @@ describe GraphQL::Schema::Validation do
     }
 
     it "requires an Array for interfaces" do
-      assert_error_includes invalid_interfaces_object, "must be an Array of GraphQL::InterfaceType, not a #{integer_class_name}"
       assert_error_includes invalid_interface_member_object, "must contain GraphQL::InterfaceType, not Symbol"
     end
 
     it "validates the fields" do
       assert_error_includes invalid_field_object, "must return GraphQL::BaseType, not Symbol"
+    end
+
+    focus
+    it "requires interfaces to be implemented" do
+      iface_1 = GraphQL::InterfaceType.define do
+        name "Interface1"
+        field :field_1, types.String
+        field :field_2, types.Int
+      end
+
+      iface_2 = GraphQL::InterfaceType.define do
+        name "Interface2"
+        field :field_3, types.String do
+          argument :arg_1, types.Boolean
+        end
+        field :field_4, types.Int
+      end
+
+      iface_3 = GraphQL::InterfaceType.define do
+        name "Interface3"
+        field :field_5, types.String do
+          argument :arg_2, types.Float
+        end
+        field :field_6, types.Int do
+          argument :arg_3, types.Float
+        end
+        field :field_7, types.ID
+      end
+
+      obj_type = GraphQL::ObjectType.define do
+        name "Object1"
+        implements iface_1, inherit: true
+        implements iface_2, iface_3
+        # Correct:
+        field :field_3, types.String do
+          argument :arg_1, types.Boolean
+        end
+        # Wrong return type:
+        field :field_4, !types.Int
+        # Wrong argument type:
+        field :field_5, types.String do
+          argument :arg_2, types.Int
+        end
+        # Missing argument
+        field :field_6, types.Int
+        # Missing altogether:
+        # field :field_7
+      end
+
+      # TODO: subtypes are acceptable
+      # TODO: additional arguments must be optional
+      # https://facebook.github.io/graphql/#sec-Object-type-validation
+      assert_error_includes(obj_type, '"field_4" is required by Interface2 to return Int but Object1.field_4 returns Int!')
     end
   end
 

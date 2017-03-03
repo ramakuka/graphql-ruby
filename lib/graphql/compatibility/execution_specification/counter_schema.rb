@@ -10,7 +10,7 @@ module GraphQL
           has_count_interface = GraphQL::InterfaceType.define do
             name "HasCount"
             field :count, types.Int
-            field :counter, ->{ counter_type }
+            field :counter, ->{ has_count_interface }
           end
 
           counter_type = GraphQL::ObjectType.define do
@@ -29,7 +29,7 @@ module GraphQL
 
           has_counter_interface = GraphQL::InterfaceType.define do
             name "HasCounter"
-            field :counter, counter_type
+            field :counter, has_count_interface
           end
 
           query_type = GraphQL::ObjectType.define do

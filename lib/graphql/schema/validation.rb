@@ -196,6 +196,34 @@ module GraphQL
             # no worries
           end
         }
+
+        INTERFACES_ARE_IMPLEMENTED = ->(obj_type) {
+          field_errors = []
+          obj_type.interfaces.each do |interface_type|
+            interface_type.fields.each do |field_name, field_defn|
+              object_field = obj_type.get_field(field_name)
+              if object_field.nil?
+                field_errors << %|"#{field_name}" is required by #{interface_type.name} but not implemented by #{obj_type.name}|
+              elsif object_field.type != field_defn.type
+                field_errors << %|"#{field_name}" is required by #{interface_type.name} to return #{field_defn.type} but #{obj_type.name}.#{field_name} returns #{object_field.type}|
+              else
+                field_defn.arguments.each do |arg_name, arg_defn|
+                  object_field_arg = object_field.arguments[arg_name]
+                  if object_field_arg.nil?
+                    field_errors << %|#{field_defn.name} `#{arg_name}` argument is required by #{interface_type.name} but not implemented by #{obj_type.name}.#{field_name}|
+                  elsif arg_defn.type != object_field_arg.type
+                    field_errors << %|#{field_defn.name} `#{arg_name}` is required by #{interface_type.name} to accept #{arg_defn.type} but #{obj_type.name}.#{field_name} accepts #{object_field_arg.type} for `#{arg_name}`|
+                  end
+                end
+              end
+            end
+          end
+          if field_errors.any?
+            "#{obj_type.name} failed to implement some interfaces: #{field_errors.join(", ")}"
+          else
+            nil
+          end
+        }
       end
 
       # A mapping of `{Class => [Proc, Proc...]}` pairs.
@@ -227,6 +255,7 @@ module GraphQL
         GraphQL::ObjectType => [
           Rules.assert_property_list_of(:interfaces, GraphQL::InterfaceType),
           Rules::FIELDS_ARE_VALID,
+          Rules::INTERFACES_ARE_IMPLEMENTED,
         ],
         GraphQL::InputObjectType => [
           Rules::ARGUMENTS_ARE_STRING_TO_ARGUMENT,
